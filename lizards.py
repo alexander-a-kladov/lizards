@@ -8,7 +8,7 @@ import moderngl
 
 pygame.init()
 
-SCR_SIZE=800
+SCR_SIZE=1000
 DEG_RAD=(3.1415926535 / 180.0)
 
 screen = pygame.display.set_mode((SCR_SIZE, SCR_SIZE), pygame.OPENGL | pygame.DOUBLEBUF)
@@ -24,6 +24,8 @@ quad_buffer = ctx.buffer(data=array('f', [
     -1.0, -1.0, 0.0, 1.0, # bottomleft
     1.0, -1.0, 1.0, 1.0 # bottomright
 ]))
+
+render_object = None
 
 vert_shader = '''
 #version 430 core
@@ -72,9 +74,10 @@ vec2 mastb_xy(vec2 uv1) {
 }
 
 void main() {
-    vec2 uv1 = rotate2D(uvs, angle);
-    vec2 uv2 = rotate2D(uvs, angle+(6.28/3.0));
-    vec2 uv3 = rotate2D(uvs, angle+(6.28/1.5));
+    vec2 uvs1 = uvs-0.5;
+    vec2 uv1 = rotate2D(uvs1, angle);
+    vec2 uv2 = rotate2D(uvs1, angle+(6.28/3.0));
+    vec2 uv3 = rotate2D(uvs1, angle+(6.28/1.5));
     uv1 = scale2D(uv1)+offset/resolution.y;
     uv2 = scale2D(uv2)+offset/resolution.y;
     uv3 = scale2D(uv3)+offset/resolution.y;
@@ -95,8 +98,18 @@ void main() {
 }
 '''
 
-program = ctx.program(vertex_shader=vert_shader, fragment_shader=frag_shader)
-render_object = ctx.vertex_array(program, [(quad_buffer, '2f 2f', 'vert', 'texcoord')])
+vert_shader = '''
+#version 430 core
+
+in vec2 vert;
+in vec2 texcoord;
+out vec2 uvs;
+
+void main() {
+    uvs = texcoord;
+    gl_Position = vec4(vert, 0.0, 1.0);
+}
+'''
 
 def surf_to_texture(surf):
     tex = ctx.texture(surf.get_size(), 4)
@@ -242,19 +255,29 @@ class ScreenData():
         program['resolution'] = (float(SCR_SIZE),float(SCR_SIZE))
         program['angle'] = self.angle*DEG_RAD
         program['offset'] = (self.dx,self.dy)
-        program['offset_g'] = (self.dx_g, self.dy_g)
+        #program['offset_g'] = (self.dx_g, self.dy_g)
         program['scale'] = self.zoom
         render_object.render(mode=moderngl.TRIANGLE_STRIP)
-    
         pygame.display.flip()
+        frame_tex.release()
 
+def loadShader(name):
+    f = open(name)
+    return "".join(f.readlines())
 
 if __name__ == "__main__":
     t = 0
     screen = ScreenData()
     pygame.key.set_repeat(50)
     
-    img = pygame.image.load("lizard.png")
+    img_name = "" 
+    if len(sys.argv)>1:
+        frag_shader = loadShader('shaders/'+sys.argv[1]+'.glsl')
+        img_name = 'textures/'+sys.argv[1]+'.jpg'
+    program = ctx.program(vertex_shader=vert_shader, fragment_shader=frag_shader)
+    render_object = ctx.vertex_array(program, [(quad_buffer, '2f 2f', 'vert', 'texcoord')])
+    
+    img = pygame.image.load(img_name)
     
     while True:
         if (t == 0 or screen.readEvents()):
