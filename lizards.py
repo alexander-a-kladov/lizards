@@ -122,7 +122,7 @@ def rotate2D(dxdy, a):
     s = m.sin(a);
     c = m.cos(a);
     return (dxdy[0]*c-dxdy[1]*s, dxdy[0]*s+dxdy[1]*c);
-
+    
 class ScreenData():
     def __init__(self):
         self.speed = 0.0
@@ -133,7 +133,7 @@ class ScreenData():
         self.MAX_ZOOM = 10.0
         self.MIN_ZOOM = 0.1
         self.MAX_CYCLES = 1000
-        self.zoom = self.MAX_ZOOM
+        self.zoom = 1.0
         self.dx = 0.0
         self.dy = 0.0
         self.dx_g = 1.0
@@ -184,16 +184,16 @@ class ScreenData():
                     self.s_dy -= 5.0
                     redraw = True
                 if event.key == pygame.K_c:
-                    self.s_dx_g -= 0.1
+                    self.s_dx_g -= 0.01
                     redraw = True
                 elif event.key == pygame.K_b:
-                    self.s_dx_g += 0.1
+                    self.s_dx_g += 0.01
                     redraw = True
                 elif event.key == pygame.K_g:
-                    self.s_dy_g += 0.1
+                    self.s_dy_g += 0.01
                     redraw = True
                 elif event.key == pygame.K_v:
-                    self.s_dy_g -= 0.1
+                    self.s_dy_g -= 0.01
                     redraw = True
                 elif event.key == pygame.K_z:
                     if self.brightness_div < self.BRIGHT_MAX:
@@ -247,8 +247,7 @@ class ScreenData():
             self.zoom = self.MAX_ZOOM-self.MIN_ZOOM
             
         pygame.display.set_caption(f'offset_g {self.dx_g:.3f} {self.dy_g:.3f} Zoom {round(1.0/self.zoom,3)} angle {self.angle} deg size {self.zoom:.5f}')
-    
-        display.blit(img, (0,0))
+        display.blit(img,(0,0))
         frame_tex = surf_to_texture(display)
         frame_tex.use(0)
         program['tex'] = 0
@@ -278,7 +277,6 @@ if __name__ == "__main__":
     render_object = ctx.vertex_array(program, [(quad_buffer, '2f 2f', 'vert', 'texcoord')])
     
     img = pygame.image.load(img_name)
-    
     while True:
         if (t == 0 or screen.readEvents()):
             screen.updateScreen(img)
