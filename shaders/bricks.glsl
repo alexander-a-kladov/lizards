@@ -21,11 +21,11 @@ vec2 scale2D(vec2 uv) {
 }
 
 vec2 mastb_xy(vec2 uv1) {
-    uv1.x /= 1.0;
-    uv1.y /= 0.558;
+    uv1.x /= 0.8;
+    uv1.y /= 0.445;
     uv1 = fract(uv1);
-    uv1.x *= 1.0;
-    uv1.y *= 0.558;
+    uv1.x *= 0.8;
+    uv1.y *= 0.445;
     return uv1;
 }
 

@@ -40,77 +40,6 @@ void main() {
 }
 '''
 
-frag_shader = '''
-#version 430 core
-
-uniform sampler2D tex;
-uniform float angle;
-uniform float scale;
-uniform vec2 resolution;
-uniform vec2 offset;
-uniform vec2 offset_g;
-
-in vec2 uvs;
-out vec4 f_color;
-
-vec2 rotate2D(vec2 uv, float a) {
- float s = sin(a);
- float c = cos(a);
- return mat2(c, -s, s, c) * uv;
-}
-
-vec2 scale2D(vec2 uv) {
- return scale*uv;
-}
-
-vec2 mastb_xy(vec2 uv1) {
-    uv1.x /= offset_g.x;
-    uv1.y /= offset_g.y;
-    uv1.x -= floor(uv1.y)*0.5;
-    uv1 = fract(uv1);
-    uv1.x *= offset_g.x;
-    uv1.y *= offset_g.y;
-    return uv1;
-}
-
-void main() {
-    vec2 uvs1 = uvs-0.5;
-    vec2 uv1 = rotate2D(uvs1, angle);
-    vec2 uv2 = rotate2D(uvs1, angle+(6.28/3.0));
-    vec2 uv3 = rotate2D(uvs1, angle+(6.28/1.5));
-    uv1 = scale2D(uv1)+offset/resolution.y;
-    uv2 = scale2D(uv2)+offset/resolution.y;
-    uv3 = scale2D(uv3)+offset/resolution.y;
-    uv1 = mastb_xy(uv1);
-    uv2 = mastb_xy(uv2);
-    uv3 = mastb_xy(uv3);
-    vec3 col = vec3(0.0, 0.0, 0.0);
-    if (uv1.x > 0.0 && uv1.y > 0.0 && uv1.x < 1.0 && uv1.y < 1.0) { 
-     col += vec3(texture(tex, uv1).r, 0.0, 0.0);
-    }
-    if (uv2.x > 0.0 && uv2.y > 0.0 && uv2.x < 1.0 && uv2.y < 1.0) { 
-     col += vec3(0.0, texture(tex, uv2).g, 0.0);
-    }
-    if (uv3.x > 0.0 && uv3.y > 0.0 && uv3.x < 1.0 && uv3.y < 1.0) { 
-     col += vec3(0.0, 0.0, texture(tex, uv3).b);
-    }
-    f_color = vec4(col, 1.0);
-}
-'''
-
-vert_shader = '''
-#version 430 core
-
-in vec2 vert;
-in vec2 texcoord;
-out vec2 uvs;
-
-void main() {
-    uvs = texcoord;
-    gl_Position = vec4(vert, 0.0, 1.0);
-}
-'''
-
 def surf_to_texture(surf):
     tex = ctx.texture(surf.get_size(), 4)
     tex.filter = (moderngl.LINEAR, moderngl.LINEAR)
@@ -137,15 +66,15 @@ class ScreenData():
         self.dx = 0.0
         self.dy = 0.0
         self.dx_g = 1.0
-        self.dy_g = 1.0
+        self.dy_g = 0.5
         self.s_dx = 0.0
         self.s_dy = 0.0
         self.s_dx_g = 0.0
         self.s_dy_g = 0.0
         self.speed = 0.0
-        self.BRIGHT_MAX = 500
-        self.BRIGHT_MIN = 50
-        self.brightness_div = self.BRIGHT_MAX
+        self.X_M_MAX = 3.0
+        self.X_M_MIN = 1.0
+        self.x_m = 1.860
         self.cycles = self.MAX_CYCLES
         
     def readEvents(self):
@@ -196,12 +125,12 @@ class ScreenData():
                     self.s_dy_g -= 0.01
                     redraw = True
                 elif event.key == pygame.K_z:
-                    if self.brightness_div < self.BRIGHT_MAX:
-                        self.brightness_div += 10
+                    if self.x_m < self.X_M_MAX:
+                        self.x_m += 0.01
                     redraw = True
                 elif event.key == pygame.K_x:
-                    if self.brightness_div > self.BRIGHT_MIN:
-                        self.brightness_div -= 10
+                    if self.x_m > self.X_M_MIN:
+                        self.x_m -= 0.01
                     redraw = True
                 elif event.key == pygame.K_SPACE:
                     self.speed = 0.0
@@ -215,7 +144,7 @@ class ScreenData():
                     self.dx_g = 0.0
                     self.dy_g = 0.0
                     self.angle = 0.0
-                    self.brightness_div = self.BRIGHT_MAX
+                    self.x_m = 1.880
                     self.zoom = self.MAX_ZOOM
                     redraw = True
             elif event.type == pygame.KEYUP:
@@ -246,7 +175,7 @@ class ScreenData():
             self.zoom_speed = 0.0
             self.zoom = self.MAX_ZOOM-self.MIN_ZOOM
             
-        pygame.display.set_caption(f'offset_g {self.dx_g:.3f} {self.dy_g:.3f} Zoom {round(1.0/self.zoom,3)} angle {self.angle} deg size {self.zoom:.5f}')
+        pygame.display.set_caption(f'offset_g {self.dx_g:.3f} {self.dy_g:.3f} Zoom {round(1.0/self.zoom,3)} angle {self.angle} deg size {self.zoom:.5f} x_m {self.x_m:.3f}')
         display.blit(img,(0,0))
         frame_tex = surf_to_texture(display)
         frame_tex.use(0)
@@ -255,6 +184,7 @@ class ScreenData():
         program['angle'] = self.angle*DEG_RAD
         program['offset'] = (self.dx,self.dy)
         #program['offset_g'] = (self.dx_g, self.dy_g)
+        #program['x_m'] = self.x_m
         program['scale'] = self.zoom
         render_object.render(mode=moderngl.TRIANGLE_STRIP)
         pygame.display.flip()
